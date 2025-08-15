@@ -8,37 +8,39 @@ HEADERS = {'User-Agent': 'Mozilla/5.0'}
 
 def get_page_text(highway_url):
     """
-    Scrapes the highway page, cleans out boilerplate HTML elements, 
-    and then returns the clean text of the main article body.
+    Scrapes the highway page, then precisely removes only the "National Highway System"
+    navbox and the "References" section before returning the clean text.
     """
     try:
         response = requests.get(highway_url, headers=HEADERS)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'lxml')
         
-        # Isolate the main content area of the page
         content_div = soup.find(id='mw-content-text')
         
         if content_div:
-            # Before extracting text, we find and destroy unwanted elements.
-            # .decompose() removes a tag and all its children.
-            
-            # Remove all navigation boxes (the main source of noise)
-            for navbox in content_div.find_all('div', class_='navbox'):
-                navbox.decompose()
-                
-            # Remove reference lists
-            for reflist in content_div.find_all('div', class_='reflist'):
-                reflist.decompose()
-                
-            # Remove "stub" message boxes at the bottom
-            for stub in content_div.find_all(class_='asbox'):
-                stub.decompose()
 
-            # Remove the little "[edit]" links next to section headers
-            for edit_section in content_div.find_all('span', class_='mw-editsection'):
-                edit_section.decompose()
+            # Find and remove ONLY the "National Highway System of Nepal" navbox.
+            for navbox in content_div.find_all(class_='navbox'):
+                if navbox.find('a', title='National Highway System (Nepal)'):
+                    print("  - Found and removed 'National Highway System' navbox.")
+                    navbox.decompose() # This removes the entire navbox from the HTML
+                    break
+
+            # Find and remove ONLY the References section.
+            references_header = content_div.find(id='References')
+            if references_header:
+                # The header is inside an <h2> tag. We remove the whole tag.
+                parent_h2 = references_header.find_parent('h2')
+                if parent_h2:
+                    parent_h2.decompose()
             
+            # Find the list of references itself (usually in a div with class 'reflist')
+            for reflist in content_div.find_all(class_='reflist'):
+                print("  - Found and removed reference list.")
+                reflist.decompose()
+            
+            # Now, get the text from the cleaned HTML
             return content_div.get_text(separator=' ', strip=True)
             
         return ""
@@ -60,7 +62,7 @@ def extract_places_with_gemini(page_text):
         client = genai.Client(api_key=api_key)
         
         prompt = f"""
-        From the following text about a specific highway in Nepal, extract ALL names of cities, towns, villages, districts, or specific junctions that it touches.
+        From the following text about a specific highway in Nepal, extract ALL names of cities, towns, villages, districts, or specific junctions in the highway.
         
         RULES:
         1. Return the result as a single, valid JSON array of strings. Example: ["Kathmandu", "Pokhara", "Hetauda"]
