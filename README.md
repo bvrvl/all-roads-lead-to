@@ -35,7 +35,7 @@ Here are the top 15 most connected places identified by the script:
 
 ## The Story Behind the Data
 
-For a full narrative about this project, the methodology, and personal reflections on the findings, please read the accompanying blog post: **[All Roads Lead to Koshi](https://bvrvl.com/all-roads-lead-to-koshi.html)**.
+For a full narrative about this project, the methodology, and personal reflections on the findings, please read the accompanying blog post: **[All Roads Lead to Koshi](https://bvrvl.com/posts/all-roads-lead-to-koshi.html)**.
 
 > I remember returning from Kathmandu and seeing the Koshi River. It was that moment when everything felt like home... It feels fitting that all roads lead here. After all, *rome* is where the heart is.
 
