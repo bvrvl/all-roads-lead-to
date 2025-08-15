@@ -8,3 +8,4 @@ en.txt
 combined.txt
 
 venv/
+__pycache__/
