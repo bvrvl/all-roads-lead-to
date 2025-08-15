@@ -21,7 +21,7 @@ def build_connections(highway_urls):
         else:
             print("  - No text found to analyze.")
             
-        time.sleep(2)  # Add a longer delay for API rate limits
+        time.sleep(7)  # Longer delay for Gemini Flash rate limits
     return all_connections
 
 def save_raw_data(connections, filename="nepal_highways_raw_data.csv"):
