@@ -20,3 +20,4 @@ if __name__ == "__main__":
             display_top_cities(city_counts)
         else:
             print("No data collected. Exiting.")
+
