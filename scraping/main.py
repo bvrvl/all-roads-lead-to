@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 from get_highway_links import get_highway_links
 from build_save import build_connections, save_raw_data
 from analyze_display import analyze_connections, display_top_cities

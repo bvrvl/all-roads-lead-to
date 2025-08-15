@@ -1,34 +1,57 @@
 import requests
 from bs4 import BeautifulSoup
-import re
+import os
+from google import genai
+import json
 
 HEADERS = {'User-Agent': 'Mozilla/5.0'}
 
-def scrape_places_from_highway(highway_url):
-    """Return raw place names from one highway page."""
-    response = requests.get(highway_url, headers=HEADERS)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, 'lxml')
+def get_page_text(highway_url):
+    """Return the clean, visible text content of a highway page."""
+    try:
+        response = requests.get(highway_url, headers=HEADERS)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'lxml')
+        content_div = soup.find(id='mw-content-text')
+        if content_div:
+            return content_div.get_text(separator=' ', strip=True)
+        return ""
+    except requests.exceptions.RequestException as e:
+        print(f"    - Could not scrape {highway_url}. Error: {e}")
+        return ""
 
-    tables = soup.find_all('table', class_='wikitable')
-    raw_places = []
-    for table in tables:
-        header_cells = [th.get_text(strip=True).lower() for th in table.find_all('th')]
-        if any(k in header_cells for k in ['junctions', 'location', 'route', 'major intersections']):
-            for row in table.find_all('tr')[1:]:
-                cells = row.find_all('td')
-                if cells:
-                    raw_places.append(cells[0].get_text(strip=True))
-    return raw_places
-
-def clean_places(raw_places):
-    """Return a cleaned list of place names."""
-    cleaned = []
-    for place_text in raw_places:
-        place_text = re.sub(r'\[\d+\]', '', place_text)   # remove [1]
-        place_text = re.sub(r'\(.*?\)', '', place_text)   # remove (foo)
-        for place in re.split(r'\n|,', place_text):
-            name = place.strip()
-            if name and len(name) > 2:
-                cleaned.append(name)
-    return list(set(cleaned))
+def extract_places_with_gemini(page_text):
+    """
+    Uses the Gemini API to extract Nepalese place names from text.
+    The API key is loaded automatically from the .env file.
+    """
+    try:
+        # Configure the Gemini API client
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        prompt = f"""
+        From the following text about a highway in Nepal, extract ALL names of cities, towns, villages, districts, or specific junctions that the Highway touches.
+        
+        RULES:
+        1. Return the result as a single, valid JSON array of strings. Example: ["Kathmandu", "Pokhara", "Hetauda"]
+        2. Do not include any other text or explanation in your response. Only the JSON array.
+        
+        TEXT TO ANALYZE:
+        ---
+        {page_text}
+        ---
+        """
+        
+        response = model.generate_content(prompt)
+        json_text = response.text.strip().lstrip("```json").rstrip("```")
+        
+        places = json.loads(json_text)
+        return places
+        
+    except json.JSONDecodeError:
+        print(f"    - Gemini returned invalid JSON. Response: {response.text}")
+        return []
+    except Exception as e:
+        print(f"    - An error occurred with the Gemini API: {e}")
+        return []
